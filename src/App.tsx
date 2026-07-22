@@ -178,7 +178,7 @@ function App() {
       moveTimer.current = null
 
       const reached2048 = moveResult.board.some((row) =>
-        row.some((value) => value >= 32),
+        row.some((value) => value >= 2048),
       )
       if (reached2048 && !usModeUnlockedRef.current) {
         usModeUnlockedRef.current = true
@@ -325,7 +325,7 @@ function App() {
                 window.localStorage.setItem(TILE_MODE_KEY, 'us')
               }}
             >
-              US
+              The Boobos
             </button>
           </div>
         )}
@@ -408,7 +408,7 @@ function App() {
               {isGameOver
                 ? 'Such game over'
                 : justUnlockedUsMode
-                  ? 'US mode unlocked!'
+                  ? 'The Boobos unlocked!'
                   : 'Wow, you made 2048!'}
             </h2>
             <p>
