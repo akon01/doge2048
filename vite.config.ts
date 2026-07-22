@@ -16,7 +16,7 @@ export default defineConfig({
         background_color: '#f8f2fd',
         display: 'standalone',
         orientation: 'portrait',
-        start_url: '/',
+        start_url: '/doge2048/',
         icons: [
           {
             src: '/icons/icon-192.svg',
