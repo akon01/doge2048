@@ -11,10 +11,26 @@ import type {
 import './App.css'
 
 const BEST_SCORE_KEY = 'doge-2048-best-score'
+const US_MODE_UNLOCKED_KEY = 'doge-2048-us-mode-unlocked'
+const TILE_MODE_KEY = 'doge-2048-tile-mode'
 const MOVE_DURATION = 180
 const imageTileValues = new Set([
   2, 4, 8, 16, 32, 64, 128, 256, 512, 1024, 2048,
 ])
+const usImageExtensions: Record<number, string> = {
+  2: 'jpg',
+  4: 'jpg',
+  8: 'gif',
+  16: 'JPG',
+  32: 'jpg',
+  64: 'jpg',
+  128: 'jpg',
+  256: 'jpg',
+  512: 'jpg',
+  1024: 'jpg',
+  2048: 'JPG',
+}
+type TileMode = 'doge' | 'us'
 const directionKeys: Record<string, Direction> = {
   ArrowUp: 'up',
   w: 'up',
@@ -35,6 +51,17 @@ function getBestScore(): number {
   return Number.isFinite(saved) ? saved : 0
 }
 
+function hasUnlockedUsMode(): boolean {
+  return window.localStorage.getItem(US_MODE_UNLOCKED_KEY) === 'true'
+}
+
+function getInitialTileMode(): TileMode {
+  return hasUnlockedUsMode() &&
+    window.localStorage.getItem(TILE_MODE_KEY) === 'us'
+    ? 'us'
+    : 'doge'
+}
+
 type TilePositionStyle = CSSProperties & {
   '--row': number
   '--column': number
@@ -49,9 +76,14 @@ type MovingTileStyle = CSSProperties & {
 
 const cellKey = ({ row, column }: Position) => `${row}-${column}`
 
-function TileArtwork({ value }: { value: number }) {
-  return imageTileValues.has(value) ? (
-    <img src={`/images/doge-${value}.gif`} alt="" draggable={false} />
+function TileArtwork({ value, mode }: { value: number; mode: TileMode }) {
+  const extension = mode === 'us' ? usImageExtensions[value] : 'gif'
+  return imageTileValues.has(value) && extension ? (
+    <img
+      src={`/images/${mode}-${value}.${extension}`}
+      alt=""
+      draggable={false}
+    />
   ) : (
     value
   )
@@ -63,12 +95,17 @@ function App() {
     score: 0,
     bestScore: getBestScore(),
   }))
+
+
+
+
   const gameRef = useRef(game)
   const boardRef = useRef<HTMLElement>(null)
   const scoreCardRef = useRef<HTMLDivElement>(null)
   const animationId = useRef(0)
   const moveTimer = useRef<number | null>(null)
   const isMoving = useRef(false)
+  const usModeUnlockedRef = useRef(hasUnlockedUsMode())
   const [movingTiles, setMovingTiles] = useState<TileMotion[] | null>(null)
   const [settledCells, setSettledCells] = useState<{
     merged: Set<string>
@@ -76,8 +113,23 @@ function App() {
   }>({ merged: new Set(), spawned: null })
   const [scoreGain, setScoreGain] = useState<{ value: number; id: number } | null>(null)
   const [keepPlaying, setKeepPlaying] = useState(false)
+  const [usModeUnlocked, setUsModeUnlocked] = useState(hasUnlockedUsMode)
+  const [justUnlockedUsMode, setJustUnlockedUsMode] = useState(false)
+  const [tileMode, setTileMode] = useState<TileMode>(getInitialTileMode)
   const touchStart = useRef<{ x: number; y: number } | null>(null)
 
+  const url=window.location.toString()
+  useEffect(()=>{
+    console.log(url)
+    if (url.includes("admin") && !usModeUnlockedRef.current) {
+      usModeUnlockedRef.current = true
+      window.localStorage.setItem(US_MODE_UNLOCKED_KEY, 'true')
+      window.localStorage.setItem(TILE_MODE_KEY, 'us')
+      setUsModeUnlocked(true)
+      setJustUnlockedUsMode(true)
+      setTileMode('us')
+    }
+  },[url])
   const hasWon = game.board.some((row) => row.some((value) => value >= 2048))
   const isGameOver = !canMove(game.board)
 
@@ -125,6 +177,18 @@ function App() {
       isMoving.current = false
       moveTimer.current = null
 
+      const reached2048 = moveResult.board.some((row) =>
+        row.some((value) => value >= 32),
+      )
+      if (reached2048 && !usModeUnlockedRef.current) {
+        usModeUnlockedRef.current = true
+        window.localStorage.setItem(US_MODE_UNLOCKED_KEY, 'true')
+        window.localStorage.setItem(TILE_MODE_KEY, 'us')
+        setUsModeUnlocked(true)
+        setJustUnlockedUsMode(true)
+        setTileMode('us')
+      }
+
       if (moveResult.scoreGained > 0) {
         animationId.current += 1
         setScoreGain({ value: moveResult.scoreGained, id: animationId.current })
@@ -165,6 +229,7 @@ function App() {
     setSettledCells({ merged: new Set(), spawned: null })
     setScoreGain(null)
     setKeepPlaying(false)
+    setJustUnlockedUsMode(false)
   }
 
   useEffect(() => {
@@ -238,6 +303,32 @@ function App() {
       </header>
 
       <section className="game-intro">
+        {usModeUnlocked && (
+          <div className="mode-switch" aria-label="Tile picture mode">
+            <button
+              type="button"
+              className={tileMode === 'doge' ? 'active' : ''}
+              aria-pressed={tileMode === 'doge'}
+              onClick={() => {
+                setTileMode('doge')
+                window.localStorage.setItem(TILE_MODE_KEY, 'doge')
+              }}
+            >
+              Doge
+            </button>
+            <button
+              type="button"
+              className={tileMode === 'us' ? 'active' : ''}
+              aria-pressed={tileMode === 'us'}
+              onClick={() => {
+                setTileMode('us')
+                window.localStorage.setItem(TILE_MODE_KEY, 'us')
+              }}
+            >
+              US
+            </button>
+          </div>
+        )}
         <button type="button" className="new-game-button" onClick={newGame}>
           New game
         </button>
@@ -275,7 +366,7 @@ function App() {
                 }
                 aria-label={String(tile.value)}
               >
-                <TileArtwork value={tile.value} />
+                <TileArtwork value={tile.value} mode={tileMode} />
               </div>
             ))
             : game.board.flatMap((row, rowIndex) =>
@@ -301,7 +392,7 @@ function App() {
                       }
                       aria-label={String(value)}
                     >
-                      <TileArtwork value={value} />
+                      <TileArtwork value={value} mode={tileMode} />
                     </div>
                   )
                 }),
@@ -313,15 +404,30 @@ function App() {
             <div className="overlay-doge" aria-hidden="true">
               {isGameOver ? '☹' : '♥'}
             </div>
-            <h2>{isGameOver ? 'Such game over' : 'Wow, you made 2048!'}</h2>
+            <h2>
+              {isGameOver
+                ? 'Such game over'
+                : justUnlockedUsMode
+                  ? 'US mode unlocked!'
+                  : 'Wow, you made 2048!'}
+            </h2>
             <p>
               {isGameOver
                 ? `Final score: ${game.score.toLocaleString()}`
-                : 'Much skill. Keep going for an even bigger tile?'}
+                : justUnlockedUsMode
+                  ? 'Your tile pictures have changed. You can switch modes anytime.'
+                  : 'Much skill. Keep going for an even bigger tile?'}
             </p>
             <div className="overlay-actions">
               {!isGameOver && (
-                <button type="button" className="secondary-button" onClick={() => setKeepPlaying(true)}>
+                <button
+                  type="button"
+                  className="secondary-button"
+                  onClick={() => {
+                    setKeepPlaying(true)
+                    setJustUnlockedUsMode(false)
+                  }}
+                >
                   Keep playing
                 </button>
               )}
