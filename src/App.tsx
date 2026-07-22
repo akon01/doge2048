@@ -17,6 +17,9 @@ const MOVE_DURATION = 180
 const imageTileValues = new Set([
   2, 4, 8, 16, 32, 64, 128, 256, 512, 1024, 2048,
 ])
+const reversedOverflowImages = [
+  2048, 1024, 512, 256, 128, 64, 32, 16, 8, 4, 2,
+]
 const usImageExtensions: Record<number, string> = {
   2: 'jpg',
   4: 'jpg',
@@ -77,15 +80,31 @@ type MovingTileStyle = CSSProperties & {
 const cellKey = ({ row, column }: Position) => `${row}-${column}`
 
 function TileArtwork({ value, mode }: { value: number; mode: TileMode }) {
-  const extension = mode === 'us' ? usImageExtensions[value] : 'gif'
-  return imageTileValues.has(value) && extension ? (
-    <img
-      src={`/images/${mode}-${value}.${extension}`}
-      alt=""
-      draggable={false}
-    />
-  ) : (
-    value
+  let artworkMode = mode
+  let artworkValue = value
+
+  if (value > 2048) {
+    const overflowIndex = Math.log2(value) - 12
+    artworkValue = reversedOverflowImages[overflowIndex]
+    artworkMode = mode === 'doge' ? 'us' : 'doge'
+  }
+
+  const extension =
+    artworkMode === 'us' ? usImageExtensions[artworkValue] : 'gif'
+
+  if (!imageTileValues.has(artworkValue) || !extension) return value
+
+  return (
+    <>
+      <img
+        src={`/images/${artworkMode}-${artworkValue}.${extension}`}
+        alt=""
+        draggable={false}
+      />
+      {value > 2048 && (
+        <span className="overflow-value">{value.toLocaleString()}</span>
+      )}
+    </>
   )
 }
 

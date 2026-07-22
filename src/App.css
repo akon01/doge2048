@@ -282,6 +282,16 @@ button:focus-visible {
   box-shadow: 0 2px 6px rgb(0 0 0 / 25%);
 }
 
+.tile .overflow-value {
+  right: 6px;
+  bottom: 6px;
+  max-width: calc(100% - 12px);
+  overflow: hidden;
+  font-size: clamp(9px, 2.5vw, 14px);
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
 .tile-2 { background: var(--purple-100); }
 .tile-4 { background: var(--purple-200); }
 .tile-8 { color: #fff; background: var(--purple-500); }
