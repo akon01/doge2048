@@ -1,0 +1,39 @@
+:root {
+  --purple-950: #250c3d;
+  --purple-900: #3f1269;
+  --purple-800: #5f1b9e;
+  --purple-700: #7020bc;
+  --purple-600: #8627df;
+  --purple-500: #9d49e8;
+  --purple-200: #dcbcf7;
+  --purple-100: #eee0fb;
+  --purple-50: #f8f2fd;
+  --lime-400: #a8e84a;
+  --lime-300: #c4f277;
+  --ink: #291a34;
+  --muted: #74657f;
+  font-family: Inter, ui-rounded, "Segoe UI", system-ui, sans-serif;
+  color: var(--ink);
+  background:
+    radial-gradient(circle at 50% 0%, rgb(220 188 247 / 72%), transparent 520px),
+    linear-gradient(180deg, var(--purple-50), #fff 75%);
+  font-synthesis: none;
+  text-rendering: optimizeLegibility;
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+}
+
+* {
+  box-sizing: border-box;
+}
+
+html {
+  min-width: 320px;
+  min-height: 100%;
+}
+
+body {
+  min-width: 320px;
+  min-height: 100vh;
+  margin: 0;
+}
