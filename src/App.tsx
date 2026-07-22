@@ -427,7 +427,7 @@ function App() {
               {isGameOver
                 ? 'Such game over'
                 : justUnlockedUsMode
-                  ? 'The Boobos unlocked!'
+                  ? 'The Boobos mode unlocked!'
                   : 'Wow, you made 2048!'}
             </h2>
             <p>
