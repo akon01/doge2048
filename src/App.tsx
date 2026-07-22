@@ -97,7 +97,7 @@ function TileArtwork({ value, mode }: { value: number; mode: TileMode }) {
   return (
     <>
       <img
-        src={`/images/${artworkMode}-${artworkValue}.${extension}`}
+        src={`${import.meta.env.BASE_URL}/images/${artworkMode}-${artworkValue}.${extension}`}
         alt=""
         draggable={false}
       />
