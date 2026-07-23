@@ -1,6 +1,11 @@
 import { useCallback, useEffect, useRef, useState } from 'react'
 import type { CSSProperties } from 'react'
 import { canMove, createBoard, moveBoard } from './game/engine'
+import {
+  clearCustomImages,
+  loadCustomImages,
+  saveCustomImage,
+} from './game/customImages'
 import type {
   Direction,
   GameState,
@@ -38,7 +43,7 @@ const tileImagePaths = [...imageTileValues].flatMap((value) => [
   `${import.meta.env.BASE_URL}images/us-${value}.${usImageExtensions[value]}`,
 ])
 const preloadedTileImages: HTMLImageElement[] = []
-type TileMode = 'doge' | 'us'
+type TileMode = 'doge' | 'us' | 'custom'
 const directionKeys: Record<string, Direction> = {
   ArrowUp: 'up',
   w: 'up',
@@ -64,10 +69,10 @@ function hasUnlockedUsMode(): boolean {
 }
 
 function getInitialTileMode(): TileMode {
-  return hasUnlockedUsMode() &&
-    window.localStorage.getItem(TILE_MODE_KEY) === 'us'
-    ? 'us'
-    : 'doge'
+  const savedMode = window.localStorage.getItem(TILE_MODE_KEY)
+  if (savedMode === 'custom') return 'custom'
+  if (savedMode === 'us' && hasUnlockedUsMode()) return 'us'
+  return 'doge'
 }
 
 type TilePositionStyle = CSSProperties & {
@@ -84,7 +89,15 @@ type MovingTileStyle = CSSProperties & {
 
 const cellKey = ({ row, column }: Position) => `${row}-${column}`
 
-function TileArtwork({ value, mode }: { value: number; mode: TileMode }) {
+function TileArtwork({
+  value,
+  mode,
+  customImages,
+}: {
+  value: number
+  mode: TileMode
+  customImages: Record<number, string>
+}) {
   let artworkMode = mode
   let artworkValue = value
 
@@ -94,6 +107,11 @@ function TileArtwork({ value, mode }: { value: number; mode: TileMode }) {
     artworkMode = mode === 'doge' ? 'us' : 'doge'
   }
 
+  if (artworkMode === 'custom' && customImages[artworkValue]) {
+    return <img src={customImages[artworkValue]} alt="" draggable={false} />
+  }
+
+  if (artworkMode === 'custom') artworkMode = 'doge'
   const extension =
     artworkMode === 'us' ? usImageExtensions[artworkValue] : 'gif'
 
@@ -143,6 +161,8 @@ function App() {
   const [tileMode, setTileMode] = useState<TileMode>(getInitialTileMode)
   const [imagesReady, setImagesReady] = useState(false)
   const [imageLoadError, setImageLoadError] = useState(false)
+  const [customImages, setCustomImages] = useState<Record<number, string>>({})
+  const [customizerOpen, setCustomizerOpen] = useState(false)
   const touchStart = useRef<{ x: number; y: number } | null>(null)
 
   const url=window.location.toString()
@@ -294,6 +314,28 @@ function App() {
     }
   }, [])
 
+  useEffect(() => {
+    let active = true
+    const urls: string[] = []
+    loadCustomImages()
+      .then((images) => {
+        if (!active) return
+        const next = Object.fromEntries(
+          Object.entries(images).map(([value, blob]) => {
+            const url = URL.createObjectURL(blob)
+            urls.push(url)
+            return [value, url]
+          }),
+        )
+        setCustomImages(next)
+      })
+      .catch((error: unknown) => console.error(error))
+    return () => {
+      active = false
+      urls.forEach(URL.revokeObjectURL)
+    }
+  }, [])
+
   useEffect(
     () => () => {
       if (moveTimer.current !== null) window.clearTimeout(moveTimer.current)
@@ -361,8 +403,7 @@ function App() {
       </header>
 
       <section className="game-intro">
-        {usModeUnlocked && (
-          <div className="mode-switch" aria-label="Tile picture mode">
+        <div className="mode-switch" aria-label="Tile picture mode">
             <button
               type="button"
               className={tileMode === 'doge' ? 'active' : ''}
@@ -374,19 +415,38 @@ function App() {
             >
               Doge
             </button>
+            {usModeUnlocked && (
+              <button
+                type="button"
+                className={tileMode === 'us' ? 'active' : ''}
+                aria-pressed={tileMode === 'us'}
+                onClick={() => {
+                  setTileMode('us')
+                  window.localStorage.setItem(TILE_MODE_KEY, 'us')
+                }}
+              >
+                The Boobos
+              </button>
+            )}
             <button
               type="button"
-              className={tileMode === 'us' ? 'active' : ''}
-              aria-pressed={tileMode === 'us'}
+              className={tileMode === 'custom' ? 'active' : ''}
+              aria-pressed={tileMode === 'custom'}
               onClick={() => {
-                setTileMode('us')
-                window.localStorage.setItem(TILE_MODE_KEY, 'us')
+                setTileMode('custom')
+                window.localStorage.setItem(TILE_MODE_KEY, 'custom')
               }}
             >
-              The Boobos
+              Custom
             </button>
           </div>
-        )}
+        <button
+          type="button"
+          className="customize-button"
+          onClick={() => setCustomizerOpen(true)}
+        >
+          Pictures
+        </button>
         <button type="button" className="new-game-button" onClick={newGame}>
           New game
         </button>
@@ -426,7 +486,7 @@ function App() {
                 }
                 aria-label={String(tile.value)}
               >
-                <TileArtwork value={tile.value} mode={tileMode} />
+                <TileArtwork value={tile.value} mode={tileMode} customImages={customImages} />
               </div>
             ))
             : game.board.flatMap((row, rowIndex) =>
@@ -452,7 +512,7 @@ function App() {
                       }
                       aria-label={String(value)}
                     >
-                      <TileArtwork value={value} mode={tileMode} />
+                      <TileArtwork value={value} mode={tileMode} customImages={customImages} />
                     </div>
                   )
                 }),
@@ -507,6 +567,59 @@ function App() {
           </div>
         )}
       </section>
+      {customizerOpen && (
+        <div className="customizer-backdrop" role="presentation">
+          <section className="customizer" role="dialog" aria-modal="true" aria-labelledby="customizer-title">
+            <header>
+              <div>
+                <h2 id="customizer-title">Custom tile pack</h2>
+                <p>Choose one image for each tile value.</p>
+              </div>
+              <button type="button" className="close-button" aria-label="Close" onClick={() => setCustomizerOpen(false)}>×</button>
+            </header>
+            <div className="custom-image-grid">
+              {[...imageTileValues].map((value) => (
+                <label key={value} className="custom-image-input">
+                  <span>{value}</span>
+                  {customImages[value] ? <img src={customImages[value]} alt="" /> : <b>+</b>}
+                  <input
+                    type="file"
+                    accept="image/*"
+                    onChange={async (event) => {
+                      const file = event.target.files?.[0]
+                      if (!file) return
+                      await saveCustomImage(value, file)
+                      const url = URL.createObjectURL(file)
+                      setCustomImages((current) => {
+                        if (current[value]) URL.revokeObjectURL(current[value])
+                        return { ...current, [value]: url }
+                      })
+                      setTileMode('custom')
+                      window.localStorage.setItem(TILE_MODE_KEY, 'custom')
+                    }}
+                  />
+                </label>
+              ))}
+            </div>
+            <footer className="customizer-actions">
+              <button
+                type="button"
+                className="secondary-button"
+                onClick={async () => {
+                  await clearCustomImages()
+                  Object.values(customImages).forEach(URL.revokeObjectURL)
+                  setCustomImages({})
+                  setTileMode('doge')
+                  window.localStorage.setItem(TILE_MODE_KEY, 'doge')
+                }}
+              >
+                Reset custom pack
+              </button>
+              <button type="button" className="new-game-button" onClick={() => setCustomizerOpen(false)}>Done</button>
+            </footer>
+          </section>
+        </div>
+      )}
     </main>
   )
 }

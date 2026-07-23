@@ -161,6 +161,117 @@ h1 {
   box-shadow: 0 2px 5px rgb(63 18 105 / 22%);
 }
 
+.customize-button {
+  padding: 9px 12px;
+  border-radius: 8px;
+  color: var(--purple-700);
+  background: var(--purple-100);
+}
+
+.customizer-backdrop {
+  position: fixed;
+  inset: 0;
+  z-index: 20;
+  display: grid;
+  place-items: center;
+  padding: 20px;
+  background: rgb(37 12 61 / 70%);
+  backdrop-filter: blur(5px);
+}
+
+.customizer {
+  width: min(100%, 560px);
+  max-height: min(90vh, 760px);
+  overflow: auto;
+  padding: 22px;
+  border-radius: 18px;
+  background: var(--purple-50);
+  box-shadow: 0 24px 70px rgb(37 12 61 / 45%);
+}
+
+.customizer header,
+.customizer-actions {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 16px;
+}
+
+.customizer h2,
+.customizer p {
+  margin: 0;
+}
+
+.customizer p {
+  margin-top: 4px;
+  color: var(--muted);
+  font-size: 14px;
+}
+
+.close-button {
+  color: var(--purple-700);
+  background: transparent;
+  font-size: 30px;
+}
+
+.custom-image-grid {
+  display: grid;
+  grid-template-columns: repeat(4, 1fr);
+  gap: 10px;
+  margin: 20px 0;
+}
+
+.custom-image-input {
+  position: relative;
+  display: grid;
+  aspect-ratio: 1;
+  overflow: hidden;
+  place-items: center;
+  border: 2px dashed var(--purple-200);
+  border-radius: 10px;
+  color: var(--purple-700);
+  background: #fff;
+  cursor: pointer;
+}
+
+.custom-image-input > span {
+  position: absolute;
+  z-index: 1;
+  top: 5px;
+  left: 6px;
+  padding: 2px 5px;
+  border-radius: 5px;
+  color: #fff;
+  background: rgb(37 12 61 / 72%);
+  font-size: 10px;
+}
+
+.custom-image-input img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+}
+
+.custom-image-input b {
+  font-size: 28px;
+}
+
+.custom-image-input input {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  opacity: 0;
+}
+
+.customizer-actions {
+  padding-top: 16px;
+  border-top: 1px solid var(--purple-200);
+}
+
+.customizer-actions .new-game-button {
+  margin-left: auto;
+}
+
 button {
   border: 0;
   font: inherit;
@@ -489,6 +600,20 @@ footer p {
 
   .game-intro {
     margin-top: 22px;
+    flex-wrap: wrap;
+  }
+
+  .mode-switch {
+    order: 3;
+    width: 100%;
+  }
+
+  .mode-switch button {
+    flex: 1;
+  }
+
+  .custom-image-grid {
+    grid-template-columns: repeat(3, 1fr);
   }
 
   .game-intro p {
