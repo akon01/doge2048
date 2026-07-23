@@ -24,15 +24,20 @@ const usImageExtensions: Record<number, string> = {
   2: 'jpg',
   4: 'jpg',
   8: 'gif',
-  16: 'JPG',
+  16: 'jpg',
   32: 'jpg',
   64: 'jpg',
   128: 'jpg',
   256: 'jpg',
   512: 'jpg',
   1024: 'jpg',
-  2048: 'JPG',
+  2048: 'jpg',
 }
+const tileImagePaths = [...imageTileValues].flatMap((value) => [
+  `${import.meta.env.BASE_URL}images/doge-${value}.gif`,
+  `${import.meta.env.BASE_URL}images/us-${value}.${usImageExtensions[value]}`,
+])
+const preloadedTileImages: HTMLImageElement[] = []
 type TileMode = 'doge' | 'us'
 const directionKeys: Record<string, Direction> = {
   ArrowUp: 'up',
@@ -124,6 +129,7 @@ function App() {
   const animationId = useRef(0)
   const moveTimer = useRef<number | null>(null)
   const isMoving = useRef(false)
+  const imagesReadyRef = useRef(false)
   const usModeUnlockedRef = useRef(hasUnlockedUsMode())
   const [movingTiles, setMovingTiles] = useState<TileMotion[] | null>(null)
   const [settledCells, setSettledCells] = useState<{
@@ -135,6 +141,8 @@ function App() {
   const [usModeUnlocked, setUsModeUnlocked] = useState(hasUnlockedUsMode)
   const [justUnlockedUsMode, setJustUnlockedUsMode] = useState(false)
   const [tileMode, setTileMode] = useState<TileMode>(getInitialTileMode)
+  const [imagesReady, setImagesReady] = useState(false)
+  const [imageLoadError, setImageLoadError] = useState(false)
   const touchStart = useRef<{ x: number; y: number } | null>(null)
 
   const url=window.location.toString()
@@ -153,7 +161,7 @@ function App() {
   const isGameOver = !canMove(game.board)
 
   const move = useCallback((direction: Direction) => {
-    if (isMoving.current) return
+    if (isMoving.current || !imagesReadyRef.current) return
 
     const current = gameRef.current
     const result = moveBoard(current.board, direction)
@@ -255,6 +263,37 @@ function App() {
     window.localStorage.setItem(BEST_SCORE_KEY, String(game.bestScore))
   }, [game.bestScore])
 
+  useEffect(() => {
+    let active = true
+
+    Promise.all(
+      tileImagePaths.map(
+        (path) =>
+          new Promise<void>((resolve, reject) => {
+            const image = new Image()
+            preloadedTileImages.push(image)
+            image.onload = () => resolve()
+            image.onerror = () => reject(new Error(`Unable to preload ${path}`))
+            image.src = path
+          }),
+      ),
+    )
+      .then(() => {
+        if (active) {
+          imagesReadyRef.current = true
+          setImagesReady(true)
+        }
+      })
+      .catch((error: unknown) => {
+        console.error(error)
+        if (active) setImageLoadError(true)
+      })
+
+    return () => {
+      active = false
+    }
+  }, [])
+
   useEffect(
     () => () => {
       if (moveTimer.current !== null) window.clearTimeout(moveTimer.current)
@@ -354,10 +393,12 @@ function App() {
       </section>
 
       <section
-        className="board"
+        className={`board ${imagesReady ? '' : 'board-loading'}`}
         ref={boardRef}
         aria-label="2048 game board"
+        aria-busy={!imagesReady}
         onTouchStart={(event) => {
+          if (!imagesReady) return
           const touch = event.touches[0]
           touchStart.current = { x: touch.clientX, y: touch.clientY }
         }}
@@ -417,6 +458,15 @@ function App() {
                 }),
               )}
         </div>
+
+        {!imagesReady && (
+          <div className="image-loader" role="status" aria-live="polite">
+            <span aria-hidden="true" />
+            {imageLoadError
+              ? 'Tile artwork failed to load. Please refresh.'
+              : 'Loading tile artwork…'}
+          </div>
+        )}
 
         {overlayVisible && (
           <div className="game-overlay" role="dialog" aria-live="polite">
