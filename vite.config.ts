@@ -7,7 +7,7 @@ export default defineConfig({
     react(),
     VitePWA({
       registerType: 'autoUpdate',
-      includeAssets: ['favicon.svg', 'images/*.{gif,jpg}'],
+      includeAssets: ['favicon.svg', 'images/*.{gif,jpg}','icons/*.{svg,png}'],
       manifest: {
         name: 'Doge 2048',
         short_name: 'Doge 2048',
